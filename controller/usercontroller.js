@@ -267,8 +267,26 @@ class userController {
             // User ki ID token se extract karo
             const userId = req.userID;
             // const driverId = req.body.driverId
+            if (!userId) {
+                res.send("user not found!")
+            }
 
-            // Body se ride details lo
+            // const ride = await Booking.findOne({ userid: userId || driverId:userId })
+            const ride = await Booking.findOne({
+                $and: [
+                    {
+                        $or: [
+                            { userId: userId },
+                            { driverId: userId }
+                        ]
+                    },
+                    { orderStatus: false }
+                ]
+            });
+            if(ride){
+                return res.status(400).send("You arleady have a rid.")
+            }else{
+                // Body se ride details lo
             const { driverId, pickupLocation, dropLocation } = req.body;
 
             // Required fields validate karo
@@ -300,6 +318,8 @@ class userController {
                 message: "Ride booked successfully!",
                 rideDetails: newBooking,
             });
+            }
+            
         } catch (error) {
             console.error("Error details:", error.message);
             res.status(500).json({ message: "Failed to book ride, please try again." });
