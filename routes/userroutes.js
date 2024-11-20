@@ -8,7 +8,7 @@ router.use('/changepassword',middlware)
 router.use('/getInfo',middlware)
 router.use('/updateProfile',middlware)
 router.use('/createRide',middlware)
-router.use('/getRides',middlware)
+// router.use('/getRides',middlware)
 
 
 
@@ -21,11 +21,12 @@ router.post('/emailSent',userController.emailSent)
 router.post('/driver',userController.driver) 
 
 router.post('/resetPassword/:id/:token',userController.resetPassword)
-// router.post('/bookRide',userController.bookRide)
+router.post('/bookRide', middlware, userController.bookRide)
+router.post('/cancelRide',middlware,userController.cancelRide)
 
 // RIDE MANAGEMENT KA ROUTER
 router.post('/createRide',userController.createRide)
-router.get('/getRides',userController.getRides)
+// router.getRides('/getRides',userController.getRides)
 
 
 

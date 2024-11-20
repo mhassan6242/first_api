@@ -1,8 +1,11 @@
 const userModel = require('../models/user.js');
-const driver = require('../models/driver.js')
+const Driver = require('../models/driver.js')
 const Ride = require('../models/ride.js');
+const Booking = require('../models/booking.js')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { assign } = require('nodemailer/lib/shared/index.js');
+const { default: mongoose } = require('mongoose');
 
 
 class userController {
@@ -61,29 +64,56 @@ class userController {
 
     static userLogin = async (req, res) => {
         try {
-            const { email, password } = req.body;
+            const { email, password, userType } = req.body;
+            console.log(userType)
             if (email && password) {
-                const user = await userModel.findOne({ email: email })
-                if (user !== null) {
+                if (userType == '2') {
+                    const driver = await Driver.findOne({ email: email })
+                    if (driver !== null) {
 
-                    // yha dono paswword ko compare kr k check krna ha k both are sam or not q k dtatbase password hamy password hash form may day ga hmy pehly hash may convert krna ha
+                        // yha dono paswword ko compare kr k check krna ha k both are sam or not q k dtatbase password hamy password hash form may day ga hmy pehly hash may convert krna ha
 
-                    const isMatch = await bcrypt.compare(password, user.password)
-                    if ((user.email === email) && isMatch) {
+                        const isMatch = await bcrypt.compare(password, driver.password)
+                        if ((driver.email === email) && isMatch) {
 
-                        // generate token
-                        const token = jwt.sign({ userID: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
+                            // generate token
+                            console.log('driver._id', driver._id)
+                            const token = jwt.sign({ userID: driver._id }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
 
-                        return res.send({ 'status': 'succes', 'message': 'Login Successful', 'token': token })
+                            return res.send({ id: driver._id, 'status': 'succes', 'message': 'Driver Login Successful', 'token': token })
+
+                        } else {
+                            res.send({ 'status': 'failed', 'message': ' Email or Password Is not valid' })
+
+                        }
 
                     } else {
-                        res.send({ 'status': 'failed', 'message': ' Email or Password Is not valid' })
+                        res.send({ 'status': 'failed', 'message': ' You are not register' })
 
                     }
-
                 } else {
-                    res.send({ 'status': 'failed', 'message': ' You are not register' })
+                    const user = await userModel.findOne({ email: email })
+                    if (user !== null) {
 
+                        // yha dono paswword ko compare kr k check krna ha k both are sam or not q k dtatbase password hamy password hash form may day ga hmy pehly hash may convert krna ha
+
+                        const isMatch = await bcrypt.compare(password, user.password)
+                        if ((user.email === email) && isMatch) {
+                            console.log('user._id', user._id)
+                            // generate token
+                            const token = jwt.sign({ userID: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
+
+                            return res.send({ 'status': 'succes', 'message': 'Login Successful', 'token': token })
+
+                        } else {
+                            res.send({ 'status': 'failed', 'message': ' Email or Password Is not valid' })
+
+                        }
+
+                    } else {
+                        res.send({ 'status': 'failed', 'message': ' You are not register' })
+
+                    }
                 }
 
             } else {
@@ -140,39 +170,39 @@ class userController {
 
 
 
-    static getRides = async (req, res) => {
-        try {
-            const authHeader = req.headers.authorization; // Authorization header se token lo
-            const token = authHeader.split(' ')[1]; // Token ko extract karo
+    // static getRides = async (req, res) => {
+    //     try {
+    //         const authHeader = req.headers.authorization; // Authorization header se token lo
+    //         const token = authHeader.split(' ')[1]; // Token ko extract karo
 
-            // Token ko verify karo
-            const verify = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    //         // Token ko verify karo
+    //         const verify = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
-            // User ko find karo using decoded._id
-            const user = await Ride.find({ userId: verify.userID });
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
+    //         // User ko find karo using decoded._id
+    //         const user = await Ride.find({ userId: verify.userID });
+    //         if (!user) {
+    //             return res.status(404).json({ message: 'User not found' });
+    //         }
 
-            const id = user._id;  // User ki ID ko store karo
+    //         const id = user._id;  // User ki ID ko store karo
 
-            // Ride fetch karen jahan user rider ya driver ho
-            const rides = await Ride.find({
-                $or: [{ id }, { driverId: id }]
-            });
+    //         // Ride fetch karen jahan user rider ya driver ho
+    //         const rides = await Ride.find({
+    //             $or: [{ id }, { driverId: id }]
+    //         });
 
-            // Agar rides nahi milti, toh 404 response bhejein
-            if (!rides.length) {
-                return res.status(404).json({ error: 'No rides found.' });
-            }
+    //         // Agar rides nahi milti, toh 404 response bhejein
+    //         if (!rides.length) {
+    //             return res.status(404).json({ error: 'No rides found.' });
+    //         }
 
-            // Rides ko response mein bhejein
-            return res.status(200).json({ rides });
-        } catch (err) {
-            console.error('Error fetching rides:', err);
-            return res.status(500).json({ error: 'Internal Server Error', details: err.message });
-        }
-    };
+    //         // Rides ko response mein bhejein
+    //         return res.status(200).json({ rides });
+    //     } catch (err) {
+    //         console.error('Error fetching rides:', err);
+    //         return res.status(500).json({ error: 'Internal Server Error', details: err.message });
+    //     }
+    // };
 
 
 
@@ -182,10 +212,11 @@ class userController {
     // driver
 
     static driver = async (req, res) => {
-        const { driverName, phone, licenseNumber, vehicleDetails } = req.body;
+        console.log('first')
+        const { driverName, phone, licenseNumber, vehicleDetails, email, password } = req.body;
 
         // Validation check
-        if (!driverName || !phone || !licenseNumber || !vehicleDetails) {
+        if (!driverName || !phone || !licenseNumber || !vehicleDetails || !email || !password) {
             return res.status(400).send({
                 status: 'failed',
                 message: 'All driver details are required'
@@ -194,11 +225,16 @@ class userController {
 
         try {
             // Creating a new driver
-            const newDriver = await new driver({
+
+            const salt = await bcrypt.genSalt(10)
+            const hashPassword = await bcrypt.hash(password, salt)
+            const newDriver = await new Driver({
                 driverName,
                 phone,
                 licenseNumber,
-                vehicleDetails
+                vehicleDetails,
+                email,
+                password: hashPassword
             });
 
             // Saving the driver
@@ -226,13 +262,119 @@ class userController {
 
 
     // BOOK RIDE API
+    static bookRide = async (req, res) => {
+        try {
+            // User ki ID token se extract karo
+            const userId = req.userID;
+            // const driverId = req.body.driverId
+
+            // Body se ride details lo
+            const { driverId, pickupLocation, dropLocation } = req.body;
+
+            // Required fields validate karo
+            if (!driverId || !pickupLocation || !dropLocation) {
+                return res.status(400).json({ message: "Incomplete ride details!" });
+            }
+
+            // Check if driver exists and is available
+            const driver = await Driver.findById(driverId);
+            if (!driver) {
+                return res.status(404).json({ message: "Driver not available!" });
+            }
+
+            // Booking create karo
+            const newBooking = new Booking({
+                userId,
+                driverId,
+                pickupLocation,
+                dropLocation,
+            });
+
+            await newBooking.save();
+
+            // // Driver ko "not available" mark karo
+            // driver.isAvailable = false;
+            // await driver.save();
+
+            res.status(201).json({
+                message: "Ride booked successfully!",
+                rideDetails: newBooking,
+            });
+        } catch (error) {
+            console.error("Error details:", error.message);
+            res.status(500).json({ message: "Failed to book ride, please try again." });
+
+        }
+    };
 
 
 
 
-     
+    // CANCEL RIDE
+
+    static cancelRide = async (req, res) => {
+        try {
+
+            const userId = req.userID
+            if (!userId) {
+                res.send("user not found!")
+            }
+            console.log('userId', userId)
+
+            // const ride = await Booking.findOne({ userid: userId || driverId:userId })
+            const ride = await Booking.findOne({
+                $and: [
+                    {
+                        $or: [
+                            { userId: userId },
+                            { driverId: userId }
+                        ]
+                    },
+                    { orderStatus: false }
+                ]
+            });
+            
+            console.log('ride', ride)
+            if (!ride) {
+                res.send('ride dont available in indrive')
+            }
+            if (ride) {
+                console.log('first', ride.userId.equals(userId))
+                if (ride.userId.equals(userId)) {
+                    console.log("Matched with userid");
+                    const update = await Booking.updateOne({
+                        cancelByUser: false,
+                        orderStatus: false
+                    }, {
+                        $set: {
+                            cancelByUser: true,
+                            orderStatus: true
+                        }
+                    })
+                    res.send({ result: update })
+                } else if (ride.driverId.equals(userId)) {
+                    const update = await Booking.updateOne({
+                        cancelByDriver: false,
+                        orderStatus: false
+                    }, {
+                        $set: {
+                            cancelByDriver: true,
+                            orderStatus: true
+                        }
+                    })
+                    res.send({ result: update })
+                }
+                else {
+                    return res.send("No matching ride found");
+                }
 
 
+            }
+        }
+        catch (error) {
+            res.send(error)
+        }
+    }
 
 
 

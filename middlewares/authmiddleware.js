@@ -12,9 +12,11 @@ const userAuth = async (req, res, next) => {
             token = authHeader.split(' ')[1]; // Token ko split karke get karna
             
             // Token verify karen
-            const verify=jwt.verify(token, process.env.JWT_SECRET_KEY);
+            const decoded=jwt.verify(token, process.env.JWT_SECRET_KEY);
+            console.log('decoded', decoded)
+            req.userID = decoded.userID; // Attach userID to req object
 
-
+               
             // id database say get krny k liay 
             // req.userModel = await userModel.findById(verify.id).select('-password');
 

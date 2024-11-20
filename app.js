@@ -3,8 +3,6 @@ const express = require('express');
 const userRoutes = require('./routes/userroutes.js')
 const mongodb = require('./config/connectDb.js')
 
-
-
 const cors = require('cors')
 
 const app = express();
