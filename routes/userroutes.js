@@ -24,6 +24,8 @@ router.post('/resetPassword/:id/:token',userController.resetPassword)
 router.post('/bookRide', middlware, userController.bookRide)
 router.post('/cancelRide',middlware,userController.cancelRide)
 
+router.post('/orderComplete',middlware,userController.orderComplete)
+
 // RIDE MANAGEMENT KA ROUTER
 router.post('/createRide',userController.createRide)
 // router.getRides('/getRides',userController.getRides)

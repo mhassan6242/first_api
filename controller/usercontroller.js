@@ -394,6 +394,67 @@ class userController {
         catch (error) {
             res.send(error)
         }
+    };
+
+    static orderComplete=async (req,res) => {
+        try {
+            
+            const userId = req.userID
+            if (!userId) {
+                res.send("user not found!")
+            }
+            const ride = await Booking.findOne({
+                $and: [
+                    {
+                        $or: [
+                            { userId: userId },
+                            { driverId: userId }
+                        ]
+                    },
+                    { orderStatus: false }
+                ]
+            });
+
+            if (!ride) {
+                res.send('ride dont available ')
+            }
+            if (ride) {
+                console.log('first', ride.userId.equals(userId))
+                if (ride.userId.equals(userId)) {
+                    const update = await Booking.updateOne({
+                    
+                        orderStatus: false
+                    }, {
+                        $set: {
+                            
+                            orderStatus: true
+                        }
+                    })
+                    res.send({ 'message':'order succesffuly complete',result: update })
+                } else if (ride.driverId.equals(userId)) {
+                    const update = await Booking.updateOne({
+                        
+                        orderStatus: false
+                    }, {
+                        $set: {
+                            
+                            orderStatus: true
+                        }
+                    })
+                    res.send({'message':'order succesfully complete by driver ', result: update })
+                }
+                else {
+                    return res.send("order dont complete");
+                }
+            }
+            
+            
+
+            
+        } catch (error) {
+            
+        }
+        
     }
 
 
