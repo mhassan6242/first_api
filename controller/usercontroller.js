@@ -582,6 +582,7 @@ class userController {
         if (email) {
             // ab check krna ha k email register ha k nai db may
             const user = await userModel.findOne({ email: email });
+            console.log(user)
 
 
 
