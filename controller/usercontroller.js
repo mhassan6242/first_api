@@ -537,32 +537,35 @@ class userController {
 
     // UPDATE PROFILE
 
-
     static updateProfile = async (req, res) => {
-        const { name, email } = req.body;
-
-        if (!name || !email) {
-            return res.send({ 'status': 'failed', 'message': 'New name and email are required' });
-        }
-
-        const newUser = { name, email };
         try {
-            const updateUser = await userModel.updateOne(req.userID, newUser, {
-                new: true,
-                runValidators: true
-            });
-
-            if (!updateUser) {
-                return res.send({ 'status': 'failed', 'message': 'User not found' });
+            const userId = req.userID; 
+            const { name, password } = req.body; 
+            console.log(req.body)
+    
+            if (!name || !password) {
+                return res.send({ status: 'failed', message: 'Name or password is missing' });
             }
-
-            res.send({ 'status': 'success', 'message': 'Profile updated successfully' });
+    
+            
+            const updateUser = await userModel.updateOne(
+                { _id: userId },
+                { $set: { name: name, password: password } } 
+            );
+    
+            if (!updateUser) {
+                return res.send({ status: 'failed', message: 'User not found' });
+            }
+    
+            res.send({ status: 'success', message: 'Profile updated successfully' });
         } catch (error) {
-            res.status(500).send({ 'status': 'error', 'message': 'Error updating profile' });
+           
+            res.send({ status: 'error', message: 'Error updating profile' });
         }
     };
+    
 
-
+  
 
 
 

@@ -6,7 +6,6 @@ const router=express.Router()
 // route level middleware
 router.use('/changepassword',middlware)
 router.use('/getInfo',middlware)
-router.use('/updateProfile',middlware)
 router.use('/createRide',middlware)
 // router.use('/getRides',middlware)
 
@@ -38,7 +37,7 @@ router.post('/createRide',userController.createRide)
 
 router.put('/changepassword',userController.changePassword);
 // router.get('/getInfo',userController.getInfo);
-router.put('/updateProfile',userController.updateProfile)
+router.put('/updateProfile',middlware,userController.updateProfile)
 
 
 
