@@ -4,6 +4,7 @@ const Ride = require('../models/ride.js');
 const Booking = require('../models/booking.js')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer=require('nodemailer')
 const { assign } = require('nodemailer/lib/shared/index.js');
 const { default: mongoose } = require('mongoose');
 
@@ -78,7 +79,7 @@ class userController {
 
                             // generate token
                             console.log('driver._id', driver._id)
-                            const token = jwt.sign({ userID: driver._id }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
+                            const token = jwt.sign({ userID: driver._id, userEmail:driver.email }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
 
                             return res.send({ id: driver._id, 'status': 'succes', 'message': 'Driver Login Successful', 'token': token })
 
@@ -101,7 +102,7 @@ class userController {
                         if ((user.email === email) && isMatch) {
                             console.log('user._id', user._id)
                             // generate token
-                            const token = jwt.sign({ userID: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
+                            const token = jwt.sign({ userID: user._id, userEmail:user.email }, process.env.JWT_SECRET_KEY, { expiresIn: '30h' })
 
                             return res.send({ 'status': 'succes', 'message': 'Login Successful', 'token': token })
 
@@ -283,43 +284,43 @@ class userController {
                     { orderStatus: false }
                 ]
             });
-            if(ride){
+            if (ride) {
                 return res.status(400).send("You arleady have a rid.")
-            }else{
+            } else {
                 // Body se ride details lo
-            const { driverId, pickupLocation, dropLocation } = req.body;
+                const { driverId, pickupLocation, dropLocation } = req.body;
 
-            // Required fields validate karo
-            if (!driverId || !pickupLocation || !dropLocation) {
-                return res.status(400).json({ message: "Incomplete ride details!" });
+                // Required fields validate karo
+                if (!driverId || !pickupLocation || !dropLocation) {
+                    return res.status(400).json({ message: "Incomplete ride details!" });
+                }
+
+                // Check if driver exists and is available
+                const driver = await Driver.findById(driverId);
+                if (!driver) {
+                    return res.status(404).json({ message: "Driver not available!" });
+                }
+
+                // Booking create karo
+                const newBooking = new Booking({
+                    userId,
+                    driverId,
+                    pickupLocation,
+                    dropLocation,
+                });
+
+                await newBooking.save();
+
+                // // Driver ko "not available" mark karo
+                // driver.isAvailable = false;
+                // await driver.save();
+
+                res.status(201).json({
+                    message: "Ride booked successfully!",
+                    rideDetails: newBooking,
+                });
             }
 
-            // Check if driver exists and is available
-            const driver = await Driver.findById(driverId);
-            if (!driver) {
-                return res.status(404).json({ message: "Driver not available!" });
-            }
-
-            // Booking create karo
-            const newBooking = new Booking({
-                userId,
-                driverId,
-                pickupLocation,
-                dropLocation,
-            });
-
-            await newBooking.save();
-
-            // // Driver ko "not available" mark karo
-            // driver.isAvailable = false;
-            // await driver.save();
-
-            res.status(201).json({
-                message: "Ride booked successfully!",
-                rideDetails: newBooking,
-            });
-            }
-            
         } catch (error) {
             console.error("Error details:", error.message);
             res.status(500).json({ message: "Failed to book ride, please try again." });
@@ -353,7 +354,7 @@ class userController {
                     { orderStatus: false }
                 ]
             });
-            
+
             console.log('ride', ride)
             if (!ride) {
                 res.send('ride dont available in indrive')
@@ -396,9 +397,9 @@ class userController {
         }
     };
 
-    static orderComplete=async (req,res) => {
+    static orderComplete = async (req, res) => {
         try {
-            
+
             const userId = req.userID
             if (!userId) {
                 res.send("user not found!")
@@ -422,39 +423,39 @@ class userController {
                 console.log('first', ride.userId.equals(userId))
                 if (ride.userId.equals(userId)) {
                     const update = await Booking.updateOne({
-                    
+
                         orderStatus: false
                     }, {
                         $set: {
-                            
+
                             orderStatus: true
                         }
                     })
-                    res.send({ 'message':'order succesffuly complete',result: update })
+                    res.send({ 'message': 'order succesffuly complete', result: update })
                 } else if (ride.driverId.equals(userId)) {
                     const update = await Booking.updateOne({
-                        
+
                         orderStatus: false
                     }, {
                         $set: {
-                            
+
                             orderStatus: true
                         }
                     })
-                    res.send({'message':'order succesfully complete by driver ', result: update })
+                    res.send({ 'message': 'order succesfully complete by driver ', result: update })
                 }
                 else {
                     return res.send("order dont complete");
                 }
             }
-            
-            
 
-            
+
+
+
         } catch (error) {
-            
+
         }
-        
+
     }
 
 
@@ -539,33 +540,33 @@ class userController {
 
     static updateProfile = async (req, res) => {
         try {
-            const userId = req.userID; 
-            const { name, password } = req.body; 
+            const userId = req.userID;
+            const { name, password } = req.body;
             console.log(req.body)
-    
+
             if (!name || !password) {
                 return res.send({ status: 'failed', message: 'Name or password is missing' });
             }
-    
-            
+
+
             const updateUser = await userModel.updateOne(
                 { _id: userId },
-                { $set: { name: name, password: password } } 
+                { $set: { name: name, password: password } }
             );
-    
+
             if (!updateUser) {
                 return res.send({ status: 'failed', message: 'User not found' });
             }
-    
+
             res.send({ status: 'success', message: 'Profile updated successfully' });
         } catch (error) {
-           
+
             res.send({ status: 'error', message: 'Error updating profile' });
         }
     };
-    
 
-  
+
+
 
 
 
@@ -575,47 +576,46 @@ class userController {
 
 
     // email sent 
-
     static emailSent = async (req, res) => {
-        // sab say pehly email check krni ha k wo ha k nai ha dataabse may
-        const { email } = req.body
-        if (email) {
-            // ab check krna ha k email register ha k nai db may
-            const user = await userModel.findOne({ email: email });
-            console.log(user)
-
-
-
-            if (user) {
-
-                // yha code likhna ha jis link may email ka notification jay reset passwword ka
-                // AudioWorkletsecret key aur genertae krni ha jo userid aur secret key jwt wali say mil k bny
-
-                const secret = user._id + process.env.JWT_SECRET_KEY
-
-                // yha ab us secret ko use krna ha token bnaty huay
-                const token = jwt.sign({ userID: user._id }, secret, { expiresIn: '15d' })
-
-                const link = `http://localhost:3000/api/user/reset/${user._id}/${token}`
-                console.log(link)
-                res.send({ 'status': 'success', 'message': 'password reset email send .....please check your' })
-
-
-
-
-
-
-            } else {
-                res.send({ 'status': 'failed', 'message': 'Email does not exit ' })
-
+        try {
+            const recieverEmail = req.userEmail; 
+            const senderEmail ='786hassanjavaid@gmail.com' 
+            if (!recieverEmail) {
+                return res.status(404).send({ status: 'failed', message: 'User email does not exist in the database' });
             }
-
-        } else {
-            res.send({ 'status': 'failed', 'message': 'Email is required to change password' })
+    
+            const transporter = await nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: senderEmail,
+                    pass: 'wuxx pjox iacp wcqd',  
+                },
+            });
+    
+            const mailOptions = {
+                from: senderEmail, 
+                to: recieverEmail,
+                subject: 'Profile Update',
+                text: `Your profile with this ${recieverEmail} has been successfully updated!`,
+            };
+    
+            await transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error:', error);
+                    return res.status(400).send({ status: 'failed', message: 'Email sending failed' });
+                } else {
+                    console.log('Email sent:', info.response);
+                    return res.status(200).send({ status: 'success', message: 'Email sent successfully' });
+                }
+            });
+    
+        } catch (error) {
+            console.error('Error in emailSent:', error);
+            res.status(500).send({ status: 'error', message: 'Internal server error' });
         }
-
-    }
-
+    };
+    
+    
 
 
 

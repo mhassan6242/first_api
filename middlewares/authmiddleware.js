@@ -14,7 +14,9 @@ const userAuth = async (req, res, next) => {
             // Token verify karen
             const decoded=jwt.verify(token, process.env.JWT_SECRET_KEY);
             console.log('decoded', decoded)
-            req.userID = decoded.userID; // Attach userID to req object
+            req.userID = decoded.userID; 
+            req.userEmail = decoded.userEmail; 
+            // Attach userID to req object
 
                
             // id database say get krny k liay 

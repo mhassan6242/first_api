@@ -16,7 +16,7 @@ router.use('/createRide',middlware)
 
 router.post('/register',userController.userRegisteration)
 router.post('/login',userController.userLogin)
-router.post('/emailSent',userController.emailSent)
+router.post('/emailSent',middlware,userController.emailSent)
 router.post('/driver',userController.driver) 
 
 router.post('/resetPassword/:id/:token',userController.resetPassword)
